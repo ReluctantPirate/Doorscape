@@ -1,8 +1,11 @@
 bool amDoor = false;
-byte currentColor = 0;
 
-byte doorCombo[6] = {4, 4, 4, 4, 4, 4};
-Color cardColors[5] = {RED, YELLOW, GREEN, BLUE, OFF};
+byte doorCombo[6] = {8, 8, 8, 8, 8, 8};
+Color cardColors[9] = {RED, YELLOW, GREEN, BLUE, RED, YELLOW, GREEN, BLUE, dim(WHITE, 50)};
+
+enum cardTypes {REDCARD, YELCARD, GRECARD, BLUCARD, REDTRAP, YELTRAP, GRETRAP, BLUTRAP, EMPTY};
+byte deckContents[13] = {REDCARD, YELCARD, GRECARD, BLUCARD, REDCARD, YELCARD, GRECARD, BLUCARD, REDTRAP, YELTRAP, GRETRAP, BLUTRAP, EMPTY};
+byte deckPosition = 0;
 
 Timer doorTimer;
 #define DOOR_CODE_TIME 20000
@@ -12,7 +15,7 @@ bool isSolved = false;
 void setup() {
   // put your setup code here, to run once:
   randomize();
-  currentColor = random(3);
+  shuffleDeck();
 }
 
 void loop() {
@@ -38,6 +41,9 @@ void doorLoop() {
     //randomize door code
     FOREACH_FACE(f) {
       doorCombo[f] = random(4);
+      if (doorCombo[f] == 4) {
+        doorCombo[f] = 8;
+      }
     }
     //reset isSolved
     isSolved = false;
@@ -54,7 +60,7 @@ void doorLoop() {
         }
       }
     } else {//no neighbor!
-      if (doorCombo[f] == 4) {//this face wants NO NEIGHBOR
+      if (doorCombo[f] == 8) {//this face wants NO NEIGHBOR
         correctNeighbors++;
       }
     }
@@ -80,11 +86,16 @@ void doorLoop() {
 
 void cardLoop() {
   if (buttonSingleClicked()) {
-    currentColor = (currentColor + 1) % 4;
+    if (deckPosition < 12) {
+      deckPosition++;
+    } else {
+      //BAD TIMES YO
+    }
   }
 
   if (buttonDoubleClicked()) {
-    currentColor = random(3);
+    deckPosition = 0;
+    shuffleDeck();
   }
 
   if (buttonMultiClicked()) {
@@ -93,16 +104,29 @@ void cardLoop() {
     }
   }
 
-  byte sendData = (amDoor << 2) | (currentColor);
+  byte sendData = (amDoor << 4) | (deckContents[deckPosition]);
   setValueSentOnAllFaces(sendData);
 
-  setColor(cardColors[currentColor]);
+  setColor(cardColors[deckContents[deckPosition]]);
+  if (deckPosition < 12) {
+    setColorOnFace(cardColors[deckContents[deckPosition + 1]], 0);
+  }
+}
+
+void shuffleDeck() {
+  for (byte i = 0; i < 30; i++) {
+    byte swapA = random(11);
+    byte swapB = random(11);
+    byte temp = deckContents[swapA];
+    deckContents[swapA] = deckContents[swapB];
+    deckContents[swapB] = temp;
+  }
 }
 
 byte getAmDoor(byte data) {
-  return (data >> 2);
+  return (data >> 4);
 }
 
 byte getCardColor(byte data) {
-  return (data & 3);
+  return (data & 15);
 }
