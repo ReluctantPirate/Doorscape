@@ -10,6 +10,9 @@ byte deckPosition = 0;
 Timer doorTimer;
 #define DOOR_CODE_TIME 20000
 
+Timer drawAnimTimer;
+#define DRAW_ANIM_TIME 400
+
 bool isSolved = false;
 
 void setup() {
@@ -24,6 +27,7 @@ void loop() {
     doorLoop();
   } else {
     cardLoop();
+    cardDisplay();
   }
 
 }
@@ -88,6 +92,7 @@ void cardLoop() {
   if (buttonSingleClicked()) {
     if (deckPosition < 12) {
       deckPosition++;
+      drawAnimTimer.set(DRAW_ANIM_TIME);
     } else {
       //BAD TIMES YO
     }
@@ -106,10 +111,33 @@ void cardLoop() {
 
   byte sendData = (amDoor << 4) | (deckContents[deckPosition]);
   setValueSentOnAllFaces(sendData);
+}
 
-  setColor(cardColors[deckContents[deckPosition]]);
-  if (deckPosition < 12) {
-    setColorOnFace(cardColors[deckContents[deckPosition + 1]], 0);
+void cardDisplay() {
+  //am I idle, or am I drawing?
+  if (drawAnimTimer.isExpired()) {//just sitting idly showing cards
+    setColor(cardColors[deckContents[deckPosition]]);
+    if (deckPosition < 12) {
+      setColorOnFace(cardColors[deckContents[deckPosition + 1]], 0);
+    }
+  } else {//doing draw animation
+    byte currentFrame = map(DRAW_ANIM_TIME - drawAnimTimer.getRemaining(), 0, DRAW_ANIM_TIME, 1, 3);
+    switch (currentFrame) {
+      case 1:
+        setColor(cardColors[deckContents[deckPosition - 1]]);
+        setColorOnFace(cardColors[deckContents[deckPosition]], 0);
+        break;
+      case 2:
+        setColor(cardColors[deckContents[deckPosition - 1]]);
+        setColorOnFace(cardColors[deckContents[deckPosition]], 0);
+        setColorOnFace(cardColors[deckContents[deckPosition]], 1);
+        setColorOnFace(cardColors[deckContents[deckPosition]], 5);
+        break;
+      case 3:
+        setColor(cardColors[deckContents[deckPosition]]);
+        setColorOnFace(cardColors[deckContents[deckPosition - 1]], 3);
+        break;
+    }
   }
 }
 
